@@ -956,7 +956,7 @@ int decode_3gpp_sms(struct sip_msg *msg)
 							if(udh_len > body.len - p) {
 								LM_ERR("TP-User-Data-Length is bigger than the "
 									   "remaining message buffer!\n");
-								return -1;
+								goto error;
 							}
 
 							//User-Data-Header
@@ -968,7 +968,7 @@ int decode_3gpp_sms(struct sip_msg *msg)
 										sizeof(tp_udh_inf_element_t));
 								if(ie == NULL) {
 									LM_ERR("no more pkg\n");
-									return -1;
+									goto error;
 								}
 								memset(ie, 0, sizeof(tp_udh_inf_element_t));
 
@@ -984,7 +984,7 @@ int decode_3gpp_sms(struct sip_msg *msg)
 										   "element!\n",
 											ie->identifier);
 									pkg_free(ie);
-									return -1;
+									goto error;
 								}
 
 								if(ie->identifier
@@ -994,7 +994,7 @@ int decode_3gpp_sms(struct sip_msg *msg)
 										LM_ERR("IE Concatenated Short Message "
 											   "8bit Reference occurred more "
 											   "than once in UDH\n");
-										return -1;
+										goto error;
 									}
 
 									ie->concat_sm_8bit_ref.ref = body.s[p++];
@@ -1008,7 +1008,7 @@ int decode_3gpp_sms(struct sip_msg *msg)
 									if(ie->data.s == NULL) {
 										pkg_free(ie);
 										LM_ERR("no more pkg\n");
-										return -1;
+										goto error;
 									}
 									memset(ie->data.s, 0, ie->data.len);
 									memcpy(ie->data.s, &body.s[p],
@@ -1045,7 +1045,7 @@ int decode_3gpp_sms(struct sip_msg *msg)
 						if(len <= 0) {
 							LM_ERR("Length of TP-User-Data payload is less "
 								   "than or equal to zero!\n");
-							return -1;
+							goto error;
 						}
 
 						// Check for maximum TP-User-Data payload length since SMS concatenation is not supported
@@ -1054,14 +1054,14 @@ int decode_3gpp_sms(struct sip_msg *msg)
 										&& len > 70)) {
 							LM_ERR("Length of TP-User-Data payload exceeds "
 								   "maximum length!\n");
-							return -1;
+							goto error;
 						}
 
 						blen = 2 + len * 4;
 						_smsops_rp_data->pdu.payload.sm.s = pkg_malloc(blen);
 						if(_smsops_rp_data->pdu.payload.sm.s == NULL) {
 							LM_ERR("no more pkg\n");
-							return -1;
+							goto error;
 						}
 						memset(_smsops_rp_data->pdu.payload.sm.s, 0, blen);
 						// Coding: 7 Bit
@@ -1084,6 +1084,10 @@ int decode_3gpp_sms(struct sip_msg *msg)
 	}
 
 	return 1;
+
+error:
+	freeRP_DATA(_smsops_rp_data);
+	return -1;
 }
 
 int dumpRPData(sms_rp_data_t *rpdata, int level)
