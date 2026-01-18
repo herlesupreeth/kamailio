@@ -101,12 +101,11 @@ int sm_process(
 				case Start:
 					p->state = Wait_Conn_Ack;
 					next_event = I_Snd_Conn_Req(p);
-					if(next_event == I_Rcv_Conn_NAck)
-						sm_process(p, next_event, 0, 1, p->I_sock);
-					else {
-						/* wait for fd to be transmitted to the respective receiver,
-						 * in order to get a send pipe opened */
+					if(next_event == I_Rcv_Conn_NAck) {
+						LM_DBG("Recevied Nack on connection request for %.*s\n",
+								p->fqdn.len, p->fqdn.s);
 					}
+					sm_process(p, next_event, 0, 1, p->I_sock);
 					break;
 				case R_Conn_CER:
 					R_Accept(p, sock);
